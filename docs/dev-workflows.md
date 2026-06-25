@@ -51,7 +51,7 @@ Engineering workflows for this repo.
 
 ### Test placement
 - Backend: `services/api/tests/`
-- E2E: `apps/web/` (Playwright)
+- E2E: `apps/web/e2e/` (configured by `apps/web/playwright.config.ts`)
 
 ### Commands
 - Quick (backend): `pnpm test:api`
