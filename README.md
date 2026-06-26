@@ -116,8 +116,8 @@ Open `.env` and fill it in. Head to the [Backblaze B2 dashboard](https://secure.
 
 1. **Create a bucket.** Paste the values into `.env`:
    - **Bucket Unique Name** → `B2_BUCKET_NAME`
-   - **Endpoint** → `B2_ENDPOINT` (e.g. `https://s3.us-west-004.backblazeb2.com`)
-   - **Region** → `B2_REGION` (the region in your endpoint, e.g. `us-west-004`)
+   - **Region** → `B2_REGION` (e.g. `us-west-004`; the S3 endpoint is derived from this)
+   - **Public URL base** → `B2_PUBLIC_URL_BASE` (e.g. `https://my-sports-highlights.s3.us-west-004.backblazeb2.com`)
 2. **Create an application key** with `Read and Write`. Paste:
    - **keyID** → `B2_APPLICATION_KEY_ID`
    - **applicationKey** → `B2_APPLICATION_KEY` *(only shown once)*
@@ -163,8 +163,9 @@ supervision-sports-highlights/videos/{video_id}/
   thumbs/moment-{n}.jpg      # representative keyframe
 ```
 
-All storage goes through the **S3-compatible API** (boto3). A single client
-factory carries the custom user agent `b2ai-supervision-sports-highlights`.
+All storage goes through the **S3-compatible API** (boto3), with the endpoint
+derived from `B2_REGION`. A single client factory carries the custom user agent
+`b2ai-supervision-sports-highlights (backblaze-b2-samples)`.
 
 ## Core Features
 
