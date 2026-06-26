@@ -30,7 +30,7 @@ def _split_key(key: str) -> tuple[str, str]:
 
 def _public_url(key: str) -> str | None:
     """Build a public URL for an object key, percent-encoding the path."""
-    base = settings.b2_public_url_base.rstrip("/")
+    base = settings.normalized_b2_public_url_base
     if not base:
         return None
     return f"{base}/{quote(key, safe='/')}"

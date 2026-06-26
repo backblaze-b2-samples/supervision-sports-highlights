@@ -39,6 +39,9 @@ REQUIRED_B2_SETTINGS = (
     ("b2_application_key", "B2_APPLICATION_KEY"),
     ("b2_bucket_name", "B2_BUCKET_NAME"),
     ("b2_region", "B2_REGION"),
+)
+
+OPTIONAL_B2_SETTINGS = (
     ("b2_public_url_base", "B2_PUBLIC_URL_BASE"),
 )
 
@@ -69,14 +72,25 @@ async def lifespan(_app: "FastAPI"):
 
     placeholders = [
         env_name
-        for attr, env_name in REQUIRED_B2_SETTINGS
-        if getattr(settings, attr) in PLACEHOLDER_VALUES
+        for attr, env_name in (*REQUIRED_B2_SETTINGS, *OPTIONAL_B2_SETTINGS)
+        if getattr(settings, attr) and getattr(settings, attr) in PLACEHOLDER_VALUES
     ]
     if placeholders:
         raise RuntimeError(
             "B2 configuration still has placeholder values: "
             + ", ".join(placeholders)
             + f". Edit {REPO_ROOT_ENV} with your real B2 credentials and restart."
+        )
+    if not settings.has_https_b2_public_url_base:
+        raise RuntimeError(
+            "B2_PUBLIC_URL_BASE must be an HTTPS URL when set. Leave it unset "
+            "for private buckets that use presigned preview, download, and "
+            "playback URLs."
+        )
+    if settings.normalized_b2_public_url_base:
+        logger.warning(
+            "B2_PUBLIC_URL_BASE is set; use only for intentionally public B2 "
+            "buckets or CDN origins."
         )
     yield
 

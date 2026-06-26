@@ -1,7 +1,27 @@
 """Tests for B2 standards required by quality-keeper."""
 
+import logging
+
+import pytest
+
+import main
 from app.config import Settings
 from app.repo import b2_client
+
+
+class FakeS3Client:
+    def __init__(self):
+        self.put_calls = []
+
+    def put_object(self, **kwargs):
+        self.put_calls.append(kwargs)
+
+
+def _set_required_b2_settings(monkeypatch):
+    monkeypatch.setattr(main.settings, "b2_application_key_id", "key-id")
+    monkeypatch.setattr(main.settings, "b2_application_key", "key")
+    monkeypatch.setattr(main.settings, "b2_bucket_name", "bucket")
+    monkeypatch.setattr(main.settings, "b2_region", "us-west-004")
 
 
 def test_s3_endpoint_is_derived_from_region():
@@ -36,14 +56,69 @@ def test_s3_client_uses_derived_endpoint_and_custom_user_agent(monkeypatch):
         b2_client.get_s3_client.cache_clear()
 
 
-def test_public_url_uses_standard_base_var(monkeypatch):
+def test_upload_metadata_url_is_none_without_public_base(monkeypatch):
+    fake_client = FakeS3Client()
+    monkeypatch.setattr(b2_client, "get_s3_client", lambda: fake_client)
+    monkeypatch.setattr(b2_client.settings, "b2_bucket_name", "bucket")
+    monkeypatch.setattr(b2_client.settings, "b2_public_url_base", "")
+
+    metadata = b2_client.upload_file(
+        b"video", "clips/moment 1.mp4", "video/mp4"
+    )
+
+    assert metadata.url is None
+    assert fake_client.put_calls[0]["Bucket"] == "bucket"
+
+
+def test_upload_metadata_url_uses_optional_public_base(monkeypatch):
+    fake_client = FakeS3Client()
+    monkeypatch.setattr(b2_client, "get_s3_client", lambda: fake_client)
+    monkeypatch.setattr(b2_client.settings, "b2_bucket_name", "bucket")
     monkeypatch.setattr(
         b2_client.settings,
         "b2_public_url_base",
-        "https://bucket.s3.us-west-004.backblazeb2.com/",
+        " https://bucket.s3.us-west-004.backblazeb2.com/ ",
     )
 
-    assert (
-        b2_client._public_url("clips/moment 1.mp4")
-        == "https://bucket.s3.us-west-004.backblazeb2.com/clips/moment%201.mp4"
+    metadata = b2_client.upload_file(
+        b"video", "clips/moment 1.mp4", "video/mp4"
     )
+
+    assert metadata.url == (
+        "https://bucket.s3.us-west-004.backblazeb2.com/clips/moment%201.mp4"
+    )
+
+
+@pytest.mark.asyncio
+async def test_lifespan_allows_private_bucket_without_public_url(monkeypatch):
+    _set_required_b2_settings(monkeypatch)
+    monkeypatch.setattr(main.settings, "b2_public_url_base", "")
+
+    async with main.lifespan(None):
+        pass
+
+
+@pytest.mark.asyncio
+async def test_lifespan_rejects_insecure_public_url(monkeypatch):
+    _set_required_b2_settings(monkeypatch)
+    monkeypatch.setattr(main.settings, "b2_public_url_base", "http://bucket.test")
+
+    with pytest.raises(RuntimeError, match="B2_PUBLIC_URL_BASE must be an HTTPS URL"):
+        async with main.lifespan(None):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_lifespan_warns_when_public_url_is_set(monkeypatch, caplog):
+    _set_required_b2_settings(monkeypatch)
+    monkeypatch.setattr(
+        main.settings,
+        "b2_public_url_base",
+        "https://bucket.s3.us-west-004.backblazeb2.com",
+    )
+
+    with caplog.at_level(logging.WARNING, logger="api"):
+        async with main.lifespan(None):
+            pass
+
+    assert "intentionally public B2 buckets" in caplog.text

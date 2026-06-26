@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from pydantic_settings import BaseSettings
 
 
@@ -68,6 +70,18 @@ class Settings(BaseSettings):
     @property
     def b2_s3_endpoint_url(self) -> str:
         return f"https://s3.{self.b2_region.strip()}.backblazeb2.com"
+
+    @property
+    def normalized_b2_public_url_base(self) -> str:
+        return self.b2_public_url_base.strip().rstrip("/")
+
+    @property
+    def has_https_b2_public_url_base(self) -> bool:
+        public_url = self.normalized_b2_public_url_base
+        if not public_url:
+            return True
+        parsed = urlparse(public_url)
+        return parsed.scheme == "https" and bool(parsed.netloc)
 
     @property
     def cors_origins(self) -> list[str]:

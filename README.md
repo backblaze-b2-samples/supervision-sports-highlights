@@ -117,11 +117,14 @@ Open `.env` and fill it in. Head to the [Backblaze B2 dashboard](https://secure.
 1. **Create a bucket.** Paste the values into `.env`:
    - **Bucket Unique Name** → `B2_BUCKET_NAME`
    - **Region** → `B2_REGION` (e.g. `us-west-004`; the S3 endpoint is derived from this)
-   - **Public URL base** → `B2_PUBLIC_URL_BASE` (e.g. `https://my-sports-highlights.s3.us-west-004.backblazeb2.com`)
 2. **Create an application key** with `Read and Write`. Paste:
    - **keyID** → `B2_APPLICATION_KEY_ID`
    - **applicationKey** → `B2_APPLICATION_KEY` *(only shown once)*
-3. *(Recommended)* Set `ANTHROPIC_API_KEY` for AI moment summaries.
+3. *(Optional, public buckets only)* Set `B2_PUBLIC_URL_BASE` to an HTTPS
+   public bucket or CDN origin only when the bucket is intentionally public.
+   Leave it unset for private buckets; previews, downloads, and playback use
+   short-lived presigned URLs by default.
+4. *(Recommended)* Set `ANTHROPIC_API_KEY` for AI moment summaries.
    *(Optional)* Set `ROBOFLOW_API_KEY` only if you want sport-specific
    [Roboflow Universe](https://universe.roboflow.com/) models or hosted
    inference — pre-trained COCO models need **no** key. Universe models emit
@@ -166,6 +169,8 @@ supervision-sports-highlights/videos/{video_id}/
 All storage goes through the **S3-compatible API** (boto3), with the endpoint
 derived from `B2_REGION`. A single client factory carries the custom user agent
 `b2ai-supervision-sports-highlights (backblaze-b2-samples)`.
+Private buckets do not need `B2_PUBLIC_URL_BASE`; media still streams through
+presigned URLs for preview, download, and playback.
 
 ## Core Features
 

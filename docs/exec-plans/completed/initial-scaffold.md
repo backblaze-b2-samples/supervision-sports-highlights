@@ -270,10 +270,10 @@ rename. `pyproject.toml` has no `name` field → nothing to rename there.
 1. **S3 API default** — ✓ boto3 S3 client only; no b2-native API anywhere.
 2. **Custom user agent on every S3 client** — ✓ single `get_s3_client()` factory
    sets `user_agent_extra="b2ai-supervision-sports-highlights (backblaze-b2-samples)"`.
-3. **Standardized `B2_*` env vars** — ✓ `B2_APPLICATION_KEY_ID`,
-   `B2_APPLICATION_KEY`, `B2_BUCKET_NAME`, `B2_REGION`,
-   `B2_PUBLIC_URL_BASE` (fixes the starter kit's legacy key-id/no-`B2_REGION`
-   deviation).
+3. **Standardized `B2_*` env vars** — ✓ required
+   `B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY`, `B2_BUCKET_NAME`,
+   `B2_REGION`; optional `B2_PUBLIC_URL_BASE` for intentionally public buckets
+   (fixes the starter kit's legacy key-id/no-`B2_REGION` deviation).
 
 ---
 
