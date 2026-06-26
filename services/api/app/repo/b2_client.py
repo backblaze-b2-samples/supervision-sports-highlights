@@ -38,10 +38,11 @@ def _public_url(key: str) -> str | None:
 
 @functools.lru_cache(maxsize=1)
 def get_s3_client():
+    region = settings.normalized_b2_region
     return boto3.client(
         "s3",
         endpoint_url=settings.b2_s3_endpoint_url,
-        region_name=settings.b2_region,
+        region_name=region,
         aws_access_key_id=settings.b2_application_key_id,
         aws_secret_access_key=settings.b2_application_key,
         config=Config(

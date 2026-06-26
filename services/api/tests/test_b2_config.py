@@ -3,6 +3,7 @@
 import logging
 
 import pytest
+from pydantic import ValidationError
 
 import main
 from app.config import Settings
@@ -28,6 +29,22 @@ def test_s3_endpoint_is_derived_from_region():
     settings = Settings(b2_region="us-east-001")
 
     assert settings.b2_s3_endpoint_url == "https://s3.us-east-001.backblazeb2.com"
+
+
+@pytest.mark.parametrize(
+    "region",
+    [
+        "us-west-004.evil",
+        "us-west-004/evil",
+        "us-west-004@evil",
+        "us-west-004?evil",
+        "us-west-004#evil",
+        "us-west-004:443",
+    ],
+)
+def test_s3_endpoint_rejects_malformed_region(region):
+    with pytest.raises(ValidationError, match="B2_REGION"):
+        Settings(b2_region=region)
 
 
 def test_b2_region_has_no_default():
@@ -58,6 +75,23 @@ def test_s3_client_uses_derived_endpoint_and_custom_user_agent(monkeypatch):
         assert captured["region_name"] == "us-west-004"
         assert captured["config"].user_agent_extra == b2_client.B2_USER_AGENT
         assert "backblaze-b2-samples" in captured["config"].user_agent_extra
+    finally:
+        b2_client.get_s3_client.cache_clear()
+
+
+def test_s3_client_rejects_malformed_region_before_boto3(monkeypatch):
+    def fake_client(*_args, **_kwargs):
+        pytest.fail("boto3.client should not be called")
+
+    monkeypatch.setattr(b2_client.boto3, "client", fake_client)
+    monkeypatch.setattr(b2_client.settings, "b2_region", "us-west-004@evil")
+    monkeypatch.setattr(b2_client.settings, "b2_application_key_id", "key-id")
+    monkeypatch.setattr(b2_client.settings, "b2_application_key", "key")
+    b2_client.get_s3_client.cache_clear()
+
+    try:
+        with pytest.raises(ValueError, match="B2_REGION"):
+            b2_client.get_s3_client()
     finally:
         b2_client.get_s3_client.cache_clear()
 
@@ -108,6 +142,17 @@ async def test_lifespan_allows_private_bucket_without_public_url(monkeypatch):
 async def test_lifespan_requires_region(monkeypatch):
     _set_required_b2_settings(monkeypatch)
     monkeypatch.setattr(main.settings, "b2_region", "")
+    monkeypatch.setattr(main.settings, "b2_public_url_base", "")
+
+    with pytest.raises(RuntimeError, match="B2_REGION"):
+        async with main.lifespan(None):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_lifespan_rejects_malformed_region(monkeypatch):
+    _set_required_b2_settings(monkeypatch)
+    monkeypatch.setattr(main.settings, "b2_region", "us-west-004/evil")
     monkeypatch.setattr(main.settings, "b2_public_url_base", "")
 
     with pytest.raises(RuntimeError, match="B2_REGION"):

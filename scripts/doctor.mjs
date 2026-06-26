@@ -81,6 +81,10 @@ function isHttpsUrl(value) {
   }
 }
 
+function isValidB2Region(value) {
+  return /^[a-z]+(?:-[a-z]+)*-\d{3}$/.test(value);
+}
+
 // ----- Tool versions -----
 
 function checkNode() {
@@ -182,11 +186,18 @@ function checkEnv() {
     return;
   }
   const env = parseEnvFile(ENV_FILE);
+  const region = (env.B2_REGION || "").trim();
   const missing = REQUIRED_B2_VARS.filter((k) => !env[k] || !env[k].trim());
   if (missing.length > 0) {
     fail(
       `.env is missing required B2 variables: ${missing.join(", ")}`,
       "See .env.example for the full list and edit .env to add them",
+    );
+  }
+  if (region && !isValidB2Region(region)) {
+    fail(
+      "B2_REGION must be a Backblaze region slug like us-west-004",
+      "Use the bucket region slug from the Backblaze dashboard, not a full S3 endpoint URL",
     );
   }
   const placeholders = [...REQUIRED_B2_VARS, ...OPTIONAL_B2_VARS].filter(

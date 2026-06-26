@@ -116,7 +116,8 @@ Open `.env` and fill it in. Head to the [Backblaze B2 dashboard](https://secure.
 
 1. **Create a bucket.** Paste the values into `.env`:
    - **Bucket Unique Name** → `B2_BUCKET_NAME`
-   - **Region** → `B2_REGION` (e.g. `us-west-004`; the S3 endpoint is derived from this)
+   - **Region** → `B2_REGION` (e.g. `us-west-004`; use the region
+     slug only, not the full S3 endpoint URL)
 2. **Create an application key** with `Read and Write`. Paste:
    - **keyID** → `B2_APPLICATION_KEY_ID`
    - **applicationKey** → `B2_APPLICATION_KEY` *(only shown once)*

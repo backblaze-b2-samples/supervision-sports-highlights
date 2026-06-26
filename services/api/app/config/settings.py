@@ -1,6 +1,21 @@
+import re
 from urllib.parse import urlparse
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+B2_REGION_RE = re.compile(r"^[a-z]+(?:-[a-z]+)*-\d{3}$")
+
+
+def _normalize_b2_region(value: str) -> str:
+    region = value.strip()
+    if not region:
+        return ""
+    if not B2_REGION_RE.fullmatch(region):
+        raise ValueError(
+            "B2_REGION must be a Backblaze region slug like 'us-west-004'"
+        )
+    return region
 
 
 class Settings(BaseSettings):
@@ -67,9 +82,18 @@ class Settings(BaseSettings):
         "extra": "ignore",
     }
 
+    @field_validator("b2_region")
+    @classmethod
+    def validate_b2_region(cls, value: str) -> str:
+        return _normalize_b2_region(value)
+
+    @property
+    def normalized_b2_region(self) -> str:
+        return _normalize_b2_region(self.b2_region)
+
     @property
     def b2_s3_endpoint_url(self) -> str:
-        return f"https://s3.{self.b2_region.strip()}.backblazeb2.com"
+        return f"https://s3.{self.normalized_b2_region}.backblazeb2.com"
 
     @property
     def normalized_b2_public_url_base(self) -> str:

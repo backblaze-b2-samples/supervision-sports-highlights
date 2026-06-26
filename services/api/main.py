@@ -85,6 +85,10 @@ async def lifespan(_app: "FastAPI"):
             + ", ".join(placeholders)
             + f". Edit {REPO_ROOT_ENV} with your real B2 credentials and restart."
         )
+    try:
+        _ = settings.normalized_b2_region
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
     if not settings.has_https_b2_public_url_base:
         raise RuntimeError(
             "B2_PUBLIC_URL_BASE must be an HTTPS URL when set. Leave it unset "
