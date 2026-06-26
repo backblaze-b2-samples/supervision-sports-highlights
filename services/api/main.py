@@ -38,19 +38,26 @@ REQUIRED_B2_SETTINGS = (
     ("b2_application_key_id", "B2_APPLICATION_KEY_ID"),
     ("b2_application_key", "B2_APPLICATION_KEY"),
     ("b2_bucket_name", "B2_BUCKET_NAME"),
-    ("b2_endpoint", "B2_ENDPOINT"),
     ("b2_region", "B2_REGION"),
+)
+
+OPTIONAL_B2_SETTINGS = (
+    ("b2_public_url_base", "B2_PUBLIC_URL_BASE"),
 )
 
 # Exact placeholder strings shipped in .env.example. If a user copied
 # the example and didn't edit it, Settings will pass the "non-empty"
 # check above but every B2 call will still 403. Catch that here.
 PLACEHOLDER_VALUES = frozenset({
-    "your_b2_endpoint",
     "your_key_id",
     "your_application_key",
     "your-bucket-name",
+    "your_public_url_base",
 })
+
+
+def _setting_value(attr: str) -> str:
+    return str(getattr(settings, attr)).strip()
 
 
 @asynccontextmanager
@@ -58,7 +65,7 @@ async def lifespan(_app: "FastAPI"):
     missing = [
         env_name
         for attr, env_name in REQUIRED_B2_SETTINGS
-        if not getattr(settings, attr)
+        if not _setting_value(attr)
     ]
     if missing:
         raise RuntimeError(
@@ -69,14 +76,29 @@ async def lifespan(_app: "FastAPI"):
 
     placeholders = [
         env_name
-        for attr, env_name in REQUIRED_B2_SETTINGS
-        if getattr(settings, attr) in PLACEHOLDER_VALUES
+        for attr, env_name in (*REQUIRED_B2_SETTINGS, *OPTIONAL_B2_SETTINGS)
+        if _setting_value(attr) and _setting_value(attr) in PLACEHOLDER_VALUES
     ]
     if placeholders:
         raise RuntimeError(
             "B2 configuration still has placeholder values: "
             + ", ".join(placeholders)
             + f". Edit {REPO_ROOT_ENV} with your real B2 credentials and restart."
+        )
+    try:
+        _ = settings.normalized_b2_region
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
+    if not settings.has_https_b2_public_url_base:
+        raise RuntimeError(
+            "B2_PUBLIC_URL_BASE must be an HTTPS URL when set. Leave it unset "
+            "for private buckets that use presigned preview, download, and "
+            "playback URLs."
+        )
+    if settings.normalized_b2_public_url_base:
+        logger.warning(
+            "B2_PUBLIC_URL_BASE is set; use only for intentionally public B2 "
+            "buckets or CDN origins."
         )
     yield
 

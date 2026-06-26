@@ -24,21 +24,23 @@ const REQUIRED_NODE_MAJOR = 20;
 const REQUIRED_PNPM_MAJOR = 9;
 const REQUIRED_PYTHON_MINOR = 11; // 3.11+
 
-// Required B2 env vars + the exact placeholder strings shipped in
-// .env.example. Keep in sync with services/api/main.py REQUIRED_B2_SETTINGS
+// B2 env vars + the exact placeholder strings shipped in .env.example. Keep in
+// sync with services/api/main.py REQUIRED_B2_SETTINGS / OPTIONAL_B2_SETTINGS
 // and PLACEHOLDER_VALUES.
 const REQUIRED_B2_VARS = [
-  "B2_ENDPOINT",
-  "B2_REGION",
   "B2_APPLICATION_KEY_ID",
   "B2_APPLICATION_KEY",
   "B2_BUCKET_NAME",
+  "B2_REGION",
+];
+const OPTIONAL_B2_VARS = [
+  "B2_PUBLIC_URL_BASE",
 ];
 const PLACEHOLDERS = new Set([
-  "your_b2_endpoint",
   "your_key_id",
   "your_application_key",
   "your-bucket-name",
+  "your_public_url_base",
 ]);
 
 // Only Next.js: `pnpm dev` self-heals the API side via scripts/pick-port.mjs,
@@ -69,6 +71,19 @@ function parseSemver(s) {
   const match = s.match(/(\d+)\.(\d+)\.(\d+)/);
   if (!match) return null;
   return { major: +match[1], minor: +match[2], patch: +match[3] };
+}
+
+function isHttpsUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && Boolean(url.host);
+  } catch {
+    return false;
+  }
+}
+
+function isValidB2Region(value) {
+  return /^[a-z]+(?:-[a-z]+)*-\d{3}$/.test(value);
 }
 
 // ----- Tool versions -----
@@ -172,20 +187,40 @@ function checkEnv() {
     return;
   }
   const env = parseEnvFile(ENV_FILE);
-  const missing = REQUIRED_B2_VARS.filter((k) => !env[k]);
+  const region = (env.B2_REGION || "").trim();
+  const missing = REQUIRED_B2_VARS.filter((k) => !env[k] || !env[k].trim());
   if (missing.length > 0) {
     fail(
       `.env is missing required B2 variables: ${missing.join(", ")}`,
       "See .env.example for the full list and edit .env to add them",
     );
   }
-  const placeholders = REQUIRED_B2_VARS.filter(
-    (k) => env[k] && PLACEHOLDERS.has(env[k]),
+  if (region && !isValidB2Region(region)) {
+    fail(
+      "B2_REGION must be a Backblaze region slug like us-west-004",
+      "Use the bucket region slug from the Backblaze dashboard, not a full S3 endpoint URL",
+    );
+  }
+  const placeholders = [...REQUIRED_B2_VARS, ...OPTIONAL_B2_VARS].filter(
+    (k) => env[k] && PLACEHOLDERS.has(env[k].trim()),
   );
   if (placeholders.length > 0) {
     fail(
       `.env still has placeholder values: ${placeholders.join(", ")}`,
       "Edit .env and replace placeholders with your real B2 credentials (https://secure.backblaze.com/app_keys.htm?utm_source=github&utm_medium=referral&utm_campaign=ai_artifacts&utm_content=b2ai-supervision-sports-highlights)",
+    );
+  }
+  const publicUrl = (env.B2_PUBLIC_URL_BASE || "").trim();
+  if (publicUrl && !isHttpsUrl(publicUrl)) {
+    fail(
+      "B2_PUBLIC_URL_BASE must be an HTTPS URL when set",
+      "Leave B2_PUBLIC_URL_BASE unset for private buckets, or set it to an HTTPS public/CDN origin for an intentionally public bucket",
+    );
+  }
+  if (publicUrl && isHttpsUrl(publicUrl)) {
+    warn(
+      "B2_PUBLIC_URL_BASE is set; only use it for intentionally public buckets or CDN origins",
+      "Leave it unset for private buckets; previews, downloads, and playback use presigned URLs by default",
     );
   }
   // AI summaries degrade gracefully without a key — warn, don't fail.

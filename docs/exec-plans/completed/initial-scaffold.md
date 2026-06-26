@@ -122,7 +122,7 @@ Flag in README: heavy install, first-run model weight auto-download, CPU-bound
 runtime.
 
 **Tooling**: extend `scripts/doctor.mjs` — rename B2 vars
-(`B2_KEY_ID`→`B2_APPLICATION_KEY_ID`, add `B2_REGION`), add an **ffmpeg-on-PATH**
+(legacy key-id env var → `B2_APPLICATION_KEY_ID`, add `B2_REGION`), add an **ffmpeg-on-PATH**
 check, and a **warn** (not fail) if `ANTHROPIC_API_KEY` is missing/placeholder
 (pipeline degrades gracefully). Keep `main.py` `REQUIRED_B2_SETTINGS` /
 `PLACEHOLDER_VALUES` in sync.
@@ -252,12 +252,13 @@ no proxying through the API.
 | Web package | `@vibe-coding-starter-kit/web` | `@supervision-sports-highlights/web` |
 | Shared package | `@vibe-coding-starter-kit/shared` | `@supervision-sports-highlights/shared` |
 | `pnpm --filter` refs in `package.json` scripts + README | `@vibe-coding-starter-kit/web` | `@supervision-sports-highlights/web` |
-| S3 client `user_agent_extra` | `b2ai-oss-start` | `b2ai-supervision-sports-highlights` |
+| S3 client `user_agent_extra` | `b2ai-oss-start` | `b2ai-supervision-sports-highlights (backblaze-b2-samples)` |
 | UTM `utm_content=` (all README/doc B2 links) | `b2ai-oss-start` | `b2ai-supervision-sports-highlights` |
 | Railway/infra service refs | `vibe-coding-starter-kit` | `supervision-sports-highlights` |
-| Env var (rename) | `B2_KEY_ID` | `B2_APPLICATION_KEY_ID` |
-| Env var (add) | — | `B2_REGION` (default `us-west-004`) |
-| Settings field | `b2_key_id` | `b2_application_key_id` (+ add `b2_region`, wire `region_name=` into the boto3 client) |
+| Env var (rename) | legacy key-id env var | `B2_APPLICATION_KEY_ID` |
+| Env var (add) | — | `B2_REGION` |
+| Env var (add) | — | `B2_PUBLIC_URL_BASE` |
+| Settings field | `b2_key_id` | `b2_application_key_id` (+ add `b2_region`, derive the S3 endpoint from the region, and wire `region_name=` into the boto3 client) |
 | Python package | `app/*` modules | **unchanged** (generic names) |
 
 Notes: no `.github/workflows` exist in the starter → no CI workflow slugs to
@@ -268,10 +269,11 @@ rename. `pyproject.toml` has no `name` field → nothing to rename there.
 ## 7. B2 standards compliance (audited by `/b2-doctor`)
 1. **S3 API default** — ✓ boto3 S3 client only; no b2-native API anywhere.
 2. **Custom user agent on every S3 client** — ✓ single `get_s3_client()` factory
-   sets `user_agent_extra="b2ai-supervision-sports-highlights"`.
-3. **Standardized `B2_*` env vars** — ✓ `B2_APPLICATION_KEY_ID`,
-   `B2_APPLICATION_KEY`, `B2_BUCKET_NAME`, `B2_REGION`, `B2_ENDPOINT` (fixes the
-   starter kit's `B2_KEY_ID`/no-`B2_REGION` deviation).
+   sets `user_agent_extra="b2ai-supervision-sports-highlights (backblaze-b2-samples)"`.
+3. **Standardized `B2_*` env vars** — ✓ required
+   `B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY`, `B2_BUCKET_NAME`,
+   `B2_REGION`; optional `B2_PUBLIC_URL_BASE` for intentionally public buckets
+   (fixes the starter kit's legacy key-id/no-`B2_REGION` deviation).
 
 ---
 

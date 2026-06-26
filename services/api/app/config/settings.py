@@ -1,14 +1,32 @@
+import re
+from urllib.parse import urlparse
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+B2_REGION_RE = re.compile(r"^[a-z]+(?:-[a-z]+)*-\d{3}$")
+
+
+def _normalize_b2_region(value: str, *, allow_empty: bool) -> str:
+    region = value.strip()
+    if not region:
+        if allow_empty:
+            return ""
+        raise ValueError("B2_REGION is required")
+    if not B2_REGION_RE.fullmatch(region):
+        raise ValueError(
+            "B2_REGION must be a Backblaze region slug like 'us-west-004'"
+        )
+    return region
 
 
 class Settings(BaseSettings):
     # --- Backblaze B2 (S3-compatible) ---
-    b2_endpoint: str = "https://s3.us-west-004.backblazeb2.com"
-    b2_region: str = "us-west-004"
     b2_application_key_id: str = ""
     b2_application_key: str = ""
     b2_bucket_name: str = ""
-    b2_public_url: str = ""
+    b2_region: str = ""
+    b2_public_url_base: str = ""
 
     api_port: int = 8000
     # Explicit allowlist by default — covers Next on :3000 and the
@@ -60,7 +78,36 @@ class Settings(BaseSettings):
     # library lists only this prefix; /files browses the full bucket.
     video_prefix: str = "supervision-sports-highlights/"
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
+
+    @field_validator("b2_region")
+    @classmethod
+    def validate_b2_region(cls, value: str) -> str:
+        return _normalize_b2_region(value, allow_empty=True)
+
+    @property
+    def normalized_b2_region(self) -> str:
+        return _normalize_b2_region(self.b2_region, allow_empty=False)
+
+    @property
+    def b2_s3_endpoint_url(self) -> str:
+        return f"https://s3.{self.normalized_b2_region}.backblazeb2.com"
+
+    @property
+    def normalized_b2_public_url_base(self) -> str:
+        return self.b2_public_url_base.strip().rstrip("/")
+
+    @property
+    def has_https_b2_public_url_base(self) -> bool:
+        public_url = self.normalized_b2_public_url_base
+        if not public_url:
+            return True
+        parsed = urlparse(public_url)
+        return parsed.scheme == "https" and bool(parsed.netloc)
 
     @property
     def cors_origins(self) -> list[str]:

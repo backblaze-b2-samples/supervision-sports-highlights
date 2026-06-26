@@ -27,14 +27,19 @@ Set these on the API service:
 
 | Variable | Value |
 |----------|-------|
-| `B2_ENDPOINT` | Your B2 S3 endpoint |
-| `B2_REGION` | Your B2 region (e.g. `us-west-004`) |
 | `B2_APPLICATION_KEY_ID` | Your B2 key ID |
 | `B2_APPLICATION_KEY` | Your B2 key |
 | `B2_BUCKET_NAME` | Your bucket name |
+| `B2_REGION` | Your B2 region slug (e.g. `us-west-004`; not a full endpoint URL) |
 | `ANTHROPIC_API_KEY` | *(recommended)* AI moment summaries; omit to degrade gracefully |
 | `ROBOFLOW_API_KEY` | *(optional)* only for Roboflow Universe / hosted inference |
 | `API_CORS_ORIGINS` | Your web service URL (e.g., `https://web-production-xxx.up.railway.app`) |
+
+Optional for the API service:
+
+| Variable | Value |
+|----------|-------|
+| `B2_PUBLIC_URL_BASE` | HTTPS public bucket/CDN base; set only for intentionally public buckets |
 
 Set this on the Web service:
 
