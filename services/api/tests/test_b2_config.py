@@ -30,6 +30,12 @@ def test_s3_endpoint_is_derived_from_region():
     assert settings.b2_s3_endpoint_url == "https://s3.us-east-001.backblazeb2.com"
 
 
+def test_b2_region_has_no_default():
+    settings = Settings(_env_file=None)
+
+    assert settings.b2_region == ""
+
+
 def test_s3_client_uses_derived_endpoint_and_custom_user_agent(monkeypatch):
     captured = {}
 
@@ -96,6 +102,17 @@ async def test_lifespan_allows_private_bucket_without_public_url(monkeypatch):
 
     async with main.lifespan(None):
         pass
+
+
+@pytest.mark.asyncio
+async def test_lifespan_requires_region(monkeypatch):
+    _set_required_b2_settings(monkeypatch)
+    monkeypatch.setattr(main.settings, "b2_region", "")
+    monkeypatch.setattr(main.settings, "b2_public_url_base", "")
+
+    with pytest.raises(RuntimeError, match="B2_REGION"):
+        async with main.lifespan(None):
+            pass
 
 
 @pytest.mark.asyncio

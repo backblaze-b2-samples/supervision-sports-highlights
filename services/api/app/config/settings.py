@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     b2_application_key_id: str = ""
     b2_application_key: str = ""
     b2_bucket_name: str = ""
-    b2_region: str = "us-west-004"
+    b2_region: str = ""
     b2_public_url_base: str = ""
 
     api_port: int = 8000

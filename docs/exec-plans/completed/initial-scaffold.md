@@ -256,7 +256,7 @@ no proxying through the API.
 | UTM `utm_content=` (all README/doc B2 links) | `b2ai-oss-start` | `b2ai-supervision-sports-highlights` |
 | Railway/infra service refs | `vibe-coding-starter-kit` | `supervision-sports-highlights` |
 | Env var (rename) | legacy key-id env var | `B2_APPLICATION_KEY_ID` |
-| Env var (add) | — | `B2_REGION` (default `us-west-004`) |
+| Env var (add) | — | `B2_REGION` |
 | Env var (add) | — | `B2_PUBLIC_URL_BASE` |
 | Settings field | `b2_key_id` | `b2_application_key_id` (+ add `b2_region`, derive the S3 endpoint from the region, and wire `region_name=` into the boto3 client) |
 | Python package | `app/*` modules | **unchanged** (generic names) |

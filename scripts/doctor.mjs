@@ -182,7 +182,7 @@ function checkEnv() {
     return;
   }
   const env = parseEnvFile(ENV_FILE);
-  const missing = REQUIRED_B2_VARS.filter((k) => !env[k]);
+  const missing = REQUIRED_B2_VARS.filter((k) => !env[k] || !env[k].trim());
   if (missing.length > 0) {
     fail(
       `.env is missing required B2 variables: ${missing.join(", ")}`,
@@ -190,7 +190,7 @@ function checkEnv() {
     );
   }
   const placeholders = [...REQUIRED_B2_VARS, ...OPTIONAL_B2_VARS].filter(
-    (k) => env[k] && PLACEHOLDERS.has(env[k]),
+    (k) => env[k] && PLACEHOLDERS.has(env[k].trim()),
   );
   if (placeholders.length > 0) {
     fail(
@@ -198,7 +198,7 @@ function checkEnv() {
       "Edit .env and replace placeholders with your real B2 credentials (https://secure.backblaze.com/app_keys.htm?utm_source=github&utm_medium=referral&utm_campaign=ai_artifacts&utm_content=b2ai-supervision-sports-highlights)",
     );
   }
-  const publicUrl = env.B2_PUBLIC_URL_BASE;
+  const publicUrl = (env.B2_PUBLIC_URL_BASE || "").trim();
   if (publicUrl && !isHttpsUrl(publicUrl)) {
     fail(
       "B2_PUBLIC_URL_BASE must be an HTTPS URL when set",

@@ -56,12 +56,16 @@ PLACEHOLDER_VALUES = frozenset({
 })
 
 
+def _setting_value(attr: str) -> str:
+    return str(getattr(settings, attr)).strip()
+
+
 @asynccontextmanager
 async def lifespan(_app: "FastAPI"):
     missing = [
         env_name
         for attr, env_name in REQUIRED_B2_SETTINGS
-        if not getattr(settings, attr)
+        if not _setting_value(attr)
     ]
     if missing:
         raise RuntimeError(
@@ -73,7 +77,7 @@ async def lifespan(_app: "FastAPI"):
     placeholders = [
         env_name
         for attr, env_name in (*REQUIRED_B2_SETTINGS, *OPTIONAL_B2_SETTINGS)
-        if getattr(settings, attr) and getattr(settings, attr) in PLACEHOLDER_VALUES
+        if _setting_value(attr) and _setting_value(attr) in PLACEHOLDER_VALUES
     ]
     if placeholders:
         raise RuntimeError(
