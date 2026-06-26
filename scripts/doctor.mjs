@@ -75,7 +75,8 @@ function parseSemver(s) {
 
 function isHttpsUrl(value) {
   try {
-    return new URL(value).protocol === "https:";
+    const url = new URL(value);
+    return url.protocol === "https:" && Boolean(url.host);
   } catch {
     return false;
   }

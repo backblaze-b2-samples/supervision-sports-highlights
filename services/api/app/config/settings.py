@@ -7,10 +7,12 @@ from pydantic_settings import BaseSettings
 B2_REGION_RE = re.compile(r"^[a-z]+(?:-[a-z]+)*-\d{3}$")
 
 
-def _normalize_b2_region(value: str) -> str:
+def _normalize_b2_region(value: str, *, allow_empty: bool) -> str:
     region = value.strip()
     if not region:
-        return ""
+        if allow_empty:
+            return ""
+        raise ValueError("B2_REGION is required")
     if not B2_REGION_RE.fullmatch(region):
         raise ValueError(
             "B2_REGION must be a Backblaze region slug like 'us-west-004'"
@@ -85,11 +87,11 @@ class Settings(BaseSettings):
     @field_validator("b2_region")
     @classmethod
     def validate_b2_region(cls, value: str) -> str:
-        return _normalize_b2_region(value)
+        return _normalize_b2_region(value, allow_empty=True)
 
     @property
     def normalized_b2_region(self) -> str:
-        return _normalize_b2_region(self.b2_region)
+        return _normalize_b2_region(self.b2_region, allow_empty=False)
 
     @property
     def b2_s3_endpoint_url(self) -> str:

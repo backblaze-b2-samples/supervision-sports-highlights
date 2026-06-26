@@ -47,10 +47,18 @@ def test_s3_endpoint_rejects_malformed_region(region):
         Settings(b2_region=region)
 
 
-def test_b2_region_has_no_default():
+def test_b2_region_has_no_default(monkeypatch):
+    monkeypatch.delenv("B2_REGION", raising=False)
     settings = Settings(_env_file=None)
 
     assert settings.b2_region == ""
+
+
+def test_s3_endpoint_rejects_missing_region():
+    settings = Settings(b2_region="")
+
+    with pytest.raises(ValueError, match="B2_REGION"):
+        _ = settings.b2_s3_endpoint_url
 
 
 def test_s3_client_uses_derived_endpoint_and_custom_user_agent(monkeypatch):
